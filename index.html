@@ -3,282 +3,231 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>?</title>
+<title>Музыкальный Квиз 4x4</title>
 
 <style>
-
 html,body{
-margin:0;
-padding:0;
-background:white;
-height:100%;
-font-family:Arial, sans-serif;
-overflow:hidden;
+    margin:0;
+    padding:0;
+    background:white;
+    height:100%;
+    font-family:Arial, sans-serif;
+    overflow:hidden;
 }
 
 #container{
-width:100vw;
-height:100vh;
-display:grid;
-grid-template-columns:repeat(4,1fr);
-grid-template-rows:repeat(4,1fr);
-justify-items:center;
-align-items:center;
+    width:100vw;
+    height:100vh;
+    display:grid;
+    /* Сетка 4 на 4 */
+    grid-template-columns:repeat(4,1fr);
+    grid-template-rows:repeat(4,1fr);
+    justify-items:center;
+    align-items:center;
 }
 
 .q{
-font-size:clamp(36px,7vw,64px);
-cursor:pointer;
-user-select:none;
-padding:18px;
-border-radius:12px;
-transition:background 0.25s,color 0.25s,opacity 1.5s;
+    font-size:clamp(36px,7vw,64px);
+    cursor:pointer;
+    user-select:none;
+    padding:18px;
+    border-radius:12px;
+    transition:background 0.25s,color 0.25s,opacity 1.5s;
 }
 
 .correct{
-background:#ccc;
+    background:#ccc;
 }
 
 .noiseActive{
-background:black;
-color:white;
+    background:black;
+    color:white;
 }
 
 .fade{
-opacity:0;
-pointer-events:none;
+    opacity:0;
+    pointer-events:none;
 }
 
 .shake{
-animation:shake 0.4s;
+    animation:shake 0.4s;
 }
 
 @keyframes shake{
-0%{transform:translateX(0)}
-20%{transform:translateX(-6px)}
-40%{transform:translateX(6px)}
-60%{transform:translateX(-4px)}
-80%{transform:translateX(4px)}
-100%{transform:translateX(0)}
+    0%{transform:translateX(0)}
+    20%{transform:translateX(-6px)}
+    40%{transform:translateX(6px)}
+    60%{transform:translateX(-4px)}
+    80%{transform:translateX(4px)}
+    100%{transform:translateX(0)}
 }
 
 #qr{
-position:absolute;
-top:50%;
-left:50%;
-transform:translate(-50%,-50%);
-opacity:0;
-transition:opacity 2s;
-max-width:70vw;
-
-pointer-events:none;
-user-select:none;
--webkit-user-drag:none;
+    position:absolute;
+    top:50%;
+    left:50%;
+    transform:translate(-50%,-50%);
+    opacity:0;
+    transition:opacity 2s;
+    max-width:70vw;
+    pointer-events:none;
+    user-select:none;
+    -webkit-user-drag:none;
 }
 
 #qr.show{
-opacity:1;
+    opacity:1;
 }
-
 </style>
 </head>
 
 <body>
 
 <div id="container"></div>
-
 <img id="qr" src="image_qr.png">
 
 <script>
-
 /* ======================
    AUDIO ENGINE
 ====================== */
-
 const AudioContext = window.AudioContext || window.webkitAudioContext
 const audioCtx = new AudioContext()
 
 function playTone(freq){
+    const osc = audioCtx.createOscillator()
+    const gain = audioCtx.createGain()
 
-const osc = audioCtx.createOscillator()
-const gain = audioCtx.createGain()
+    osc.type="sine"
+    osc.frequency.value=freq
 
-osc.type="sine"
-osc.frequency.value=freq
+    gain.gain.setValueAtTime(0.0001,audioCtx.currentTime)
+    gain.gain.exponentialRampToValueAtTime(0.45,audioCtx.currentTime+0.02)
+    gain.gain.exponentialRampToValueAtTime(0.0001,audioCtx.currentTime+0.6)
 
-gain.gain.setValueAtTime(0.0001,audioCtx.currentTime)
-gain.gain.exponentialRampToValueAtTime(0.45,audioCtx.currentTime+0.02)
-gain.gain.exponentialRampToValueAtTime(0.0001,audioCtx.currentTime+0.6)
+    osc.connect(gain)
+    gain.connect(audioCtx.destination)
 
-osc.connect(gain)
-gain.connect(audioCtx.destination)
-
-osc.start()
-osc.stop(audioCtx.currentTime+0.6)
-
+    osc.start()
+    osc.stop(audioCtx.currentTime+0.6)
 }
 
 function playNoise(){
+    const length = audioCtx.sampleRate * 0.25
+    const buffer = audioCtx.createBuffer(1,length,audioCtx.sampleRate)
+    const data = buffer.getChannelData(0)
 
-const length = audioCtx.sampleRate * 0.25
-const buffer = audioCtx.createBuffer(1,length,audioCtx.sampleRate)
-const data = buffer.getChannelData(0)
+    for(let i=0;i<length;i++){
+        data[i] = Math.random()*2-1
+    }
 
-for(let i=0;i<length;i++){
-data[i] = Math.random()*2-1
-}
+    const src = audioCtx.createBufferSource()
+    src.buffer = buffer
 
-const src = audioCtx.createBufferSource()
-src.buffer = buffer
+    const gain = audioCtx.createGain()
+    gain.gain.value = 0.35
 
-const gain = audioCtx.createGain()
-gain.gain.value = 0.35
+    src.connect(gain)
+    gain.connect(audioCtx.destination)
 
-src.connect(gain)
-gain.connect(audioCtx.destination)
-
-src.start()
-
+    src.start()
 }
 
 /* ======================
-   NOTES
+   NOTES (Добавлена C5)
 ====================== */
-
 const notes=[
-{note:"C4",freq:261.63},
-{note:"D4",freq:293.66},
-{note:"E4",freq:329.63},
-{note:"F4",freq:349.23},
-{note:"G4",freq:392.00},
-{note:"A4",freq:440.00},
-{note:"B4",freq:493.88}
+    {note:"C4",freq:261.63},
+    {note:"D4",freq:293.66},
+    {note:"E4",freq:329.63},
+    {note:"F4",freq:349.23},
+    {note:"G4",freq:392.00},
+    {note:"A4",freq:440.00},
+    {note:"B4",freq:493.88},
+    {note:"C5",freq:523.25}
 ]
 
-const sequence=["C4","D4","E4","F4","G4","A4","B4"]
-
+const sequence=["C4","D4","E4","F4","G4","A4","B4","C5"]
 let progress=0
 
 /* ======================
-   BUILD BUTTONS
+   BUILD BUTTONS (8 нот + 8 шумов = 16)
 ====================== */
-
 let items=[]
-
-for(let i=0;i<14;i++){
-
-if(i<7){
-items.push({type:"note",note:notes[i].note,freq:notes[i].freq})
-}else{
-items.push({type:"noise"})
+for(let i=0;i<16;i++){
+    if(i<8){
+        items.push({type:"note",note:notes[i].note,freq:notes[i].freq})
+    }else{
+        items.push({type:"noise"})
+    }
 }
 
-}
-
+// Случайное перемешивание
 items.sort(()=>Math.random()-0.5)
 
 const container=document.getElementById("container")
 const qr=document.getElementById("qr")
 
-qr.draggable=false
-
 items.forEach(item=>{
+    const el=document.createElement("div")
+    el.className="q"
+    el.textContent="?"
+    el.dataset.type=item.type
 
-const el=document.createElement("div")
-el.className="q"
-el.textContent="?"
+    if(item.type==="note"){
+        el.dataset.note=item.note
+        el.dataset.freq=item.freq
+    }
 
-el.dataset.type=item.type
-
-if(item.type==="note"){
-el.dataset.note=item.note
-el.dataset.freq=item.freq
-}
-
-container.appendChild(el)
-
-el.addEventListener("click",()=>handleClick(el))
-
+    container.appendChild(el)
+    el.addEventListener("click",()=>handleClick(el))
 })
 
 /* ======================
    GAME LOGIC
 ====================== */
-
 function handleClick(el){
+    if (audioCtx.state === 'suspended') audioCtx.resume()
 
-audioCtx.resume()
+    const type=el.dataset.type
 
-const type=el.dataset.type
+    if(type==="noise"){
+        playNoise()
+        el.classList.add("noiseActive")
+        setTimeout(()=>el.classList.remove("noiseActive"), 250)
+        shakeAll()
+        resetNotes()
+        return
+    }
 
-if(type==="noise"){
+    const note=el.dataset.note
+    playTone(parseFloat(el.dataset.freq))
 
-playNoise()
-
-el.classList.add("noiseActive")
-
-shakeAll()
-
-resetNotes()
-
-return
-
-}
-
-const note=el.dataset.note
-
-playTone(parseFloat(el.dataset.freq))
-
-if(note===sequence[progress]){
-
-el.classList.add("correct")
-
-progress++
-
-if(progress===sequence.length){
-victory()
-}
-
-}else{
-
-resetNotes()
-shakeAll()
-
-}
-
+    if(note===sequence[progress]){
+        el.classList.add("correct")
+        progress++
+        if(progress===sequence.length) victory()
+    }else{
+        resetNotes()
+        shakeAll()
+    }
 }
 
 function resetNotes(){
-
-progress=0
-
-document.querySelectorAll(".correct").forEach(el=>{
-el.classList.remove("correct")
-})
-
+    progress=0
+    document.querySelectorAll(".correct").forEach(el=>el.classList.remove("correct"))
 }
 
 function shakeAll(){
-
-document.querySelectorAll(".q").forEach(q=>{
-q.classList.add("shake")
-setTimeout(()=>q.classList.remove("shake"),400)
-})
-
+    document.querySelectorAll(".q").forEach(q=>{
+        q.classList.add("shake")
+        setTimeout(()=>q.classList.remove("shake"),400)
+    })
 }
 
 function victory(){
-
-document.querySelectorAll(".q").forEach(q=>{
-q.classList.add("fade")
-})
-
-setTimeout(()=>{
-qr.classList.add("show")
-},1200)
-
+    document.querySelectorAll(".q").forEach(q=>q.classList.add("fade"))
+    setTimeout(()=>qr.classList.add("show"),1200)
 }
-
 </script>
 
 </body>
