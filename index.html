@@ -13,6 +13,7 @@ padding:0;
 background:white;
 height:100%;
 font-family:Arial, sans-serif;
+overflow:hidden;
 }
 
 #container{
@@ -69,6 +70,10 @@ transform:translate(-50%,-50%);
 opacity:0;
 transition:opacity 2s;
 max-width:70vw;
+
+pointer-events:none;
+user-select:none;
+-webkit-user-drag:none;
 }
 
 #qr.show{
@@ -81,9 +86,14 @@ opacity:1;
 <body>
 
 <div id="container"></div>
+
 <img id="qr" src="image_qr.png">
 
 <script>
+
+/* ======================
+   AUDIO ENGINE
+====================== */
 
 const AudioContext = window.AudioContext || window.webkitAudioContext
 const audioCtx = new AudioContext()
@@ -131,6 +141,10 @@ src.start()
 
 }
 
+/* ======================
+   NOTES
+====================== */
+
 const notes=[
 {note:"C4",freq:261.63},
 {note:"D4",freq:293.66},
@@ -144,6 +158,10 @@ const notes=[
 const sequence=["C4","D4","E4","F4","G4","A4","B4"]
 
 let progress=0
+
+/* ======================
+   BUILD BUTTONS
+====================== */
 
 let items=[]
 
@@ -160,6 +178,9 @@ items.push({type:"noise"})
 items.sort(()=>Math.random()-0.5)
 
 const container=document.getElementById("container")
+const qr=document.getElementById("qr")
+
+qr.draggable=false
 
 items.forEach(item=>{
 
@@ -179,6 +200,10 @@ container.appendChild(el)
 el.addEventListener("click",()=>handleClick(el))
 
 })
+
+/* ======================
+   GAME LOGIC
+====================== */
 
 function handleClick(el){
 
@@ -249,7 +274,7 @@ q.classList.add("fade")
 })
 
 setTimeout(()=>{
-document.getElementById("qr").classList.add("show")
+qr.classList.add("show")
 },1200)
 
 }
