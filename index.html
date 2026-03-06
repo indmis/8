@@ -29,16 +29,16 @@ align-items:center;
 font-size:clamp(36px,7vw,64px);
 cursor:pointer;
 user-select:none;
-padding:16px;
+padding:18px;
 border-radius:12px;
-transition:background 0.2s,color 0.2s,opacity 1.5s;
+transition:background 0.25s,color 0.25s,opacity 1.5s;
 }
 
 .correct{
 background:#ccc;
 }
 
-.noiseFlash{
+.noiseActive{
 background:black;
 color:white;
 }
@@ -97,32 +97,32 @@ osc.type="sine"
 osc.frequency.value=freq
 
 gain.gain.setValueAtTime(0.0001,audioCtx.currentTime)
-gain.gain.exponentialRampToValueAtTime(0.4,audioCtx.currentTime+0.02)
-gain.gain.exponentialRampToValueAtTime(0.0001,audioCtx.currentTime+0.5)
+gain.gain.exponentialRampToValueAtTime(0.45,audioCtx.currentTime+0.02)
+gain.gain.exponentialRampToValueAtTime(0.0001,audioCtx.currentTime+0.6)
 
 osc.connect(gain)
 gain.connect(audioCtx.destination)
 
 osc.start()
-osc.stop(audioCtx.currentTime+0.5)
+osc.stop(audioCtx.currentTime+0.6)
 
 }
 
 function playNoise(){
 
-const bufferSize = audioCtx.sampleRate * 0.25
-const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate)
+const length = audioCtx.sampleRate * 0.25
+const buffer = audioCtx.createBuffer(1,length,audioCtx.sampleRate)
 const data = buffer.getChannelData(0)
 
-for(let i=0;i<bufferSize;i++){
-data[i]=Math.random()*2-1
+for(let i=0;i<length;i++){
+data[i] = Math.random()*2-1
 }
 
 const src = audioCtx.createBufferSource()
-src.buffer=buffer
+src.buffer = buffer
 
-const gain=audioCtx.createGain()
-gain.gain.value=0.35
+const gain = audioCtx.createGain()
+gain.gain.value = 0.35
 
 src.connect(gain)
 gain.connect(audioCtx.destination)
@@ -169,7 +169,7 @@ el.textContent="?"
 
 el.dataset.type=item.type
 
-if(item.note){
+if(item.type==="note"){
 el.dataset.note=item.note
 el.dataset.freq=item.freq
 }
@@ -185,16 +185,28 @@ function handleClick(el){
 audioCtx.resume()
 
 const type=el.dataset.type
-const note=el.dataset.note
 
-if(type==="note"){
+if(type==="noise"){
+
+playNoise()
+
+el.classList.add("noiseActive")
+
+shakeAll()
+
+resetNotes()
+
+return
+
+}
+
+const note=el.dataset.note
 
 playTone(parseFloat(el.dataset.freq))
 
 if(note===sequence[progress]){
 
 el.classList.add("correct")
-setTimeout(()=>el.classList.remove("correct"),300)
 
 progress++
 
@@ -204,26 +216,24 @@ victory()
 
 }else{
 
-resetSequence()
-
-}
-
-}else{
-
-playNoise()
-
-el.classList.add("noiseFlash")
-setTimeout(()=>el.classList.remove("noiseFlash"),200)
-
-resetSequence()
+resetNotes()
+shakeAll()
 
 }
 
 }
 
-function resetSequence(){
+function resetNotes(){
 
 progress=0
+
+document.querySelectorAll(".correct").forEach(el=>{
+el.classList.remove("correct")
+})
+
+}
+
+function shakeAll(){
 
 document.querySelectorAll(".q").forEach(q=>{
 q.classList.add("shake")
